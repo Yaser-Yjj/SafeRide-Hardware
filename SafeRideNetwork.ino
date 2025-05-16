@@ -33,7 +33,7 @@ void loop() {
     while (client.connected()) {
       if (client.available()) {
         String req = client.readStringUntil('\n');
-        Serial.print("Received: ");
+        Serial.print("Received From App: ");
         Serial.println(req);
 
         // Blink LED
@@ -41,7 +41,7 @@ void loop() {
         delay(200);
         digitalWrite(LED_PIN, LOW);
 
-        String res = "ESP32 received: " + req;
+        String res = "From ESP32 : " + req;
         client.println(res);
       }
     }
