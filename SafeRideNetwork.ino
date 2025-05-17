@@ -29,6 +29,7 @@ void loop() {
 
   if (client) {
     Serial.println("New client connected");
+    client.println("Connected with Device");
 
     while (client.connected()) {
       if (client.available()) {
