@@ -9,12 +9,14 @@ const char* password = "123456789";
 // Server and LED settings
 WiFiServer server(3333);
 const int LED_PIN = 2;
+const int BUZZER_PIN = 15;
 
 Preferences preferences;
 
 void setup() {
   Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
 
   // Load previous config if needed
   loadStoredConfig();
@@ -25,6 +27,9 @@ void setup() {
   IPAddress IP = WiFi.softAPIP();
   Serial.print("Hotspot IP: ");
   Serial.println(IP);
+
+  
+  digitalWrite(LED_PIN, LOW);
 
   // Start TCP server
   server.begin();
