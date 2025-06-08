@@ -5,6 +5,7 @@ MPU6050 mpu;
 
 // Buzzer pin
 const int BUZZER_PIN = 15;
+const int LED_PIN = 2;
 
 float yawDeg = 0;
 float gyroZOffset = 0;
@@ -35,7 +36,10 @@ void setup() {
 
   // Setup buzzer
   pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN, LOW); // 🔊 Buzzer OFF by default
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);  // 🔊 Buzzer OFF by default
+
+  digitalWrite(LED_PIN, LOW);
 
   Serial.println("MPU6050 Calibration Done ✔");
 }
@@ -61,9 +65,10 @@ void loop() {
 
   // Optional: Turn buzzer ON if yaw > threshold
   if (yawDeg > 65 || yawDeg < -65) {
-    digitalWrite(BUZZER_PIN, HIGH); // 🔔 Turn on buzzer
+    digitalWrite(BUZZER_PIN, 0);  // 🔔 Turn on buzzer
+    digitalWrite(LED_PIN, 1);
   } else {
-    digitalWrite(BUZZER_PIN, LOW);  // 🔇 Turn off buzzer
+    digitalWrite(BUZZER_PIN, 0);  // 🔇 Turn off buzzer
+    digitalWrite(LED_PIN, LOW);
   }
-
 }
