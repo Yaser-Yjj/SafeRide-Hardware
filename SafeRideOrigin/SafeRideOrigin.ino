@@ -3,17 +3,19 @@
 #include <Preferences.h>
 #include <Wire.h>
 #include <MPU6050.h>
+#include <math.h>
 
 // MPU6050 + Gyro Setup
 MPU6050 mpu;
-float yawDeg = 0;
-float gyroZOffset = 0;
+float yawDeg = 0;         // Yaw angle in degrees
+float gyroZOffset = 0;    // Gyro Z bias
 unsigned long lastIMU = 0;
-const float DEG2RAD = M_PI / 180.0f;
 
 // Buzzer and LED pins
 const int BUZZER_PIN = 15;
 const int LED_PIN = 2;
+
+bool accidentSent = false;
 
 // Wi-Fi Hotspot
 const char* ssid = "SafeRide-Device";
@@ -24,9 +26,13 @@ Preferences preferences;
 void setup() {
   Serial.begin(115200);
 
-  setupMpu();
-
   loadStoredConfig();
+
+  // Setup buzzer & LED
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);  // Default OFF
+  digitalWrite(LED_PIN, LOW);
 
   WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
@@ -43,6 +49,12 @@ void loop() {
   if (client) {
     Serial.println("New client connected");
     client.println("Connected with Device");
+    static bool initialized = false;
+    if (!initialized) {
+      delay(500);
+      setupMpu();
+      initialized = true;
+    }
 
     while (client.connected()) {
       if (client.available()) {
@@ -98,20 +110,23 @@ void loop() {
       Serial.print("Yaw: ");
       Serial.print(currentYaw);
       Serial.println("°");
-      
-      // Optional: Turn buzzer ON if yaw exceeds threshold
-      if (currentYaw > 65 || currentYaw < -65) {
-        digitalWrite(BUZZER_PIN, LOW);
-        digitalWrite(LED_PIN, HIGH);
 
+      // Detect sharp turn
+      if (abs(currentYaw) > 65 && !accidentSent) {
         if (client && client.connected()) {
+          digitalWrite(LED_PIN, HIGH);
+          delay(1000);
+          digitalWrite(LED_PIN, LOW);
           client.println("accident");
+          digitalWrite(BUZZER_PIN, LOW);
+          delay(1000);
+          digitalWrite(BUZZER_PIN, LOW);
+          accidentSent = true;
         }
-      } else {
-        digitalWrite(BUZZER_PIN, LOW);
-        digitalWrite(LED_PIN, LOW);
+      } else if (abs(currentYaw) < 10) {
+        // Reset flag when yaw is small again
+        accidentSent = false;
       }
-
     }
 
     client.stop();
@@ -124,7 +139,7 @@ void setupMpu() {
   Wire.begin();
   mpu.initialize();
 
-  // Calibrate Gyro Z-axis offset
+  // Calibrate gyro Z offset
   long sum = 0;
   for (int i = 0; i < 200; i++) {
     int16_t gx, gy, gz;
@@ -135,28 +150,29 @@ void setupMpu() {
   gyroZOffset = sum / 200.0f;
   lastIMU = millis();
 
-  // Setup buzzer & LED
-  pinMode(BUZZER_PIN, OUTPUT);
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN, LOW);  // Default OFF
-  digitalWrite(LED_PIN, LOW);
-
-  Serial.println("MPU6050 Calibration Done ✔");
+  Serial.println(F("MPU6050 Initialized ✔"));
 }
 
 float DisplayDegre() {
-  int16_t ax, ay, az, gx, gy, gz;
-
-  // Read raw values
+   int16_t ax, ay, az, gx, gy, gz;
   mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
-  // Compute delta time
+  // Compute time delta
   unsigned long now = millis();
   float dt = (now - lastIMU) / 1000.0f;
   lastIMU = now;
 
-  // Update yaw (rotation around Z-axis)
+  // Integrate gyro Z to get yaw angle
   yawDeg += (gz - gyroZOffset) / 131.0f * dt;
+
+  // Print yaw angle every 250 ms
+  static unsigned long lastPrint = 0;
+  if (millis() - lastPrint > 250) {
+    Serial.print("Yaw: ");
+    Serial.print(yawDeg, 2);
+    Serial.println("°");
+    lastPrint = millis();
+  }
 
   return yawDeg;
 }

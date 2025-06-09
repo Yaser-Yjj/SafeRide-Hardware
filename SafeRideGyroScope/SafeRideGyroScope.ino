@@ -16,7 +16,6 @@ void setup() {
   // Start serial communication
   Serial.begin(115200);
 
-
   // Initialize I2C
   Wire.begin();
 
@@ -42,6 +41,7 @@ void setup() {
   digitalWrite(LED_PIN, LOW);
 
   Serial.println("MPU6050 Calibration Done ✔");
+
 }
 
 void loop() {
