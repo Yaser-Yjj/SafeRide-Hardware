@@ -7,8 +7,8 @@
 
 // MPU6050 + Gyro Setup
 MPU6050 mpu;
-float yawDeg = 0;         // Yaw angle in degrees
-float gyroZOffset = 0;    // Gyro Z bias
+float yawDeg = 0;       // Yaw angle in degrees
+float gyroZOffset = 0;  // Gyro Z bias
 unsigned long lastIMU = 0;
 
 // Buzzer and LED pins
@@ -110,21 +110,22 @@ void loop() {
       Serial.print("Yaw: ");
       Serial.print(currentYaw);
       Serial.println("°");
+      
+      client.println(currentYaw);
+      delay(100);
 
       // Detect sharp turn
-      if (abs(currentYaw) > 65 && !accidentSent) {
+      if (abs(currentYaw) > 70 && !accidentSent) {
         if (client && client.connected()) {
           digitalWrite(LED_PIN, HIGH);
-          delay(1000);
-          digitalWrite(LED_PIN, LOW);
+          digitalWrite(BUZZER_PIN, HIGH);
           client.println("accident");
-          digitalWrite(BUZZER_PIN, LOW);
-          delay(1000);
-          digitalWrite(BUZZER_PIN, LOW);
           accidentSent = true;
         }
-      } else if (abs(currentYaw) < 10) {
+      } else if (abs(currentYaw) < 30) {
         // Reset flag when yaw is small again
+        digitalWrite(LED_PIN, LOW);
+        digitalWrite(BUZZER_PIN, LOW);
         accidentSent = false;
       }
     }
@@ -154,7 +155,7 @@ void setupMpu() {
 }
 
 float DisplayDegre() {
-   int16_t ax, ay, az, gx, gy, gz;
+  int16_t ax, ay, az, gx, gy, gz;
   mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
   // Compute time delta
